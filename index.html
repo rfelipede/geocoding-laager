@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geocoding Laager - Sistema Completo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #112133 0%, #224266 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #99CC29;
+        }
+
+        .logo {
+            height: 80px;
+            width: auto;
+        }
+
+        .header-text {
+            flex: 1;
+            text-align: center;
+        }
+
+        h1 {
+            color: #224266;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: #EDF5F7;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #BAD4E5;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            color: #224266;
+        }
+
+        .mode-btn:hover {
+            border-color: #99CC29;
+            transform: translateY(-2px);
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #99CC29 0%, #B5E52E 100%);
+            border-color: #99CC29;
+            color: #112133;
+            box-shadow: 0 4px 15px rgba(153, 204, 41, 0.4);
+        }
+
+        .mode-content {
+            display: none;
+        }
+
+        .mode-content.active {
+            display: block;
+        }
+
+        .upload-area {
+            border: 3px dashed #99CC29;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: #E6FBFF;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            background: #A4E1FF;
+            border-color: #00B1FF;
+            transform: scale(1.02);
+        }
+
+        .upload-area.dragover {
+            background: #00B1FF;
+            border-color: #224266;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #224266;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #99CC29 0%, #B5E52E 100%);
+            color: #112133;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(153, 204, 41, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(153, 204, 41, 0.6);
+            background: linear-gradient(135deg, #B5E52E 0%, #C9F233 100%);
+        }
+
+        .btn:disabled {
+            background: #BAD4E5;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #00B1FF 0%, #A4E1FF 100%);
+            color: #112133;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #A4E1FF 0%, #E6FBFF 100%);
+        }
+
+        .config-section {
+            background: #EDF5F7;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #224266;
+        }
+
+        .config-section h3 {
+            color: #224266;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        label {
+            display: block;
+            color: #224266;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #BAD4E5;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #99CC29;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #99CC29;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .checkbox-group label {
+            margin-bottom: 0;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .progress-container {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #EDF5F7;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid #BAD4E5;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #99CC29 0%, #B5E52E 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #112133;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .status.info {
+            background: #E6FBFF;
+            color: #224266;
+            border-left: 4px solid #00B1FF;
+        }
+
+        .status.success {
+            background: #E6FBFF;
+            color: #224266;
+            border-left: 4px solid #99CC29;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+
+        .status.warning {
+            background: #fff3e0;
+            color: #f57c00;
+            border-left: 4px solid #f57c00;
+        }
+
+        .file-info {
+            background: #E6FBFF;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+            border-left: 4px solid #99CC29;
+        }
+
+        .file-info h4 {
+            color: #224266;
+            margin-bottom: 8px;
+        }
+
+        .file-info p {
+            color: #555;
+            margin: 5px 0;
+        }
+
+        .instructions {
+            background: #E6FBFF;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #00B1FF;
+        }
+
+        .instructions h3 {
+            color: #224266;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+            color: #224266;
+        }
+
+        .instructions li {
+            margin: 8px 0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .enrichment-section {
+            background: #E6FBFF;
+            border: 2px solid #00B1FF;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .enrichment-section h3 {
+            color: #224266;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #224266;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .example-box {
+            background: #C9F233;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border-left: 3px solid #99CC29;
+        }
+
+        .example-box strong {
+            color: #112133;
+        }
+
+        .example-box p {
+            margin: 5px 0;
+            font-size: 13px;
+            color: #224266;
+        }
+
+        .collapsible {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .collapsible::before {
+            content: '▼ ';
+            display: inline-block;
+            transition: transform 0.3s ease;
+            color: #00B1FF;
+        }
+
+        .collapsible.collapsed::before {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #BAD4E5;
+            color: #224266;
+            font-size: 12px;
+        }
+
+        .footer strong {
+            color: #99CC29;
+        }
+
+        .container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .container::-webkit-scrollbar-track {
+            background: #EDF5F7;
+            border-radius: 10px;
+        }
+
+        .container::-webkit-scrollbar-thumb {
+            background: #99CC29;
+            border-radius: 10px;
+        }
+
+        .container::-webkit-scrollbar-thumb:hover {
+            background: #B5E52E;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="data:image/png;base64,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vLDwG/eE8/s3BCkeAAAACXBIWXMAAC4jAAAuIwF4pT92AAADd2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSfvu78nIGlkPSdXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQnPz4NCjx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iPjxyZGY6UkRGIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+PHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9InV1aWQ6ZmFmNWJkZDUtYmEzZC0xMWRhLWFkMzEtZDMzZDc1MTgyZjFiIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iPjxkYzpjcmVhdG9yPjxyZGY6U2VxIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+PHJkZjpsaT5SLiBGZWxpcGUgRHVxdWUgRXN0cmFkYTwvcmRmOmxpPjwvcmRmOlNlcT4NCgkJCTwvZGM6Y3JlYXRvcj48L3JkZjpEZXNjcmlwdGlvbj48cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0idXVpZDpmYWY1YmRkNS1iYTNkLTExZGEtYWQzMS1kMzNkNzUxODJmMWIiIHhtbG5zOmV4aWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20vZXhpZi8xLjAvIj48ZXhpZjpEYXRlVGltZU9yaWdpbmFsPjIwMjUtMTAtMDlUMDg6Mzg6NDQuNTQ3PC9leGlmOkRhdGVUaW1lT3JpZ2luYWw+PC9yZGY6RGVzY3JpcHRpb24+PHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9InV1aWQ6ZmFmNWJkZDUtYmEzZC0xMWRhLWFkMzEtZDMzZDc1MTgyZjFiIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iPjx4bXA6Q3JlYXRlRGF0ZT4yMDI1LTEwLTA5VDA4OjM4OjQ0LjU0NzwveG1wOkNyZWF0ZURhdGU+PC9yZGY6RGVzY3JpcHRpb24+PC9yZGY6UkRGPjwveDp4bXBtZXRhPg0KPD94cGFja2V0IGVuZD0ndyc/PonacbIAAAAhdEVYdENyZWF0aW9uIFRpbWUAMjAyNToxMDowOSAwODozODo0NKymIGoAAKHOSURBVHhe7N13mCVlnbfxe2agyUly0iMFCmiLgraBTGEAbXVN3aZV11CsWfc17Ooa1jWsu6tr9phWXUO3WVuCQoEIKrZgoBEVOHDIOUpsYOb9Y57W5ucMzPR09zlVdX+u61wD318NuxcWPedb9dRS" alt="Laager Logo" class="logo">
+            <div class="header-text">
+                <h1>🌍 Geocoding Laager</h1>
+                <p class="subtitle">Sistema Completo de Geocodificação</p>
+            </div>
+        </div>
+
+        <!-- Seletor de Modo -->
+        <div class="mode-selector">
+            <button class="mode-btn active" id="modeDirectBtn" onclick="switchMode('direct')">
+                📍 Endereço → Coordenadas
+            </button>
+            <button class="mode-btn" id="modeReverseBtn" onclick="switchMode('reverse')">
+                🗺️ Coordenadas → Endereço
+            </button>
+        </div>
+
+        <!-- Modo Direto (Endereço para Coordenadas) -->
+        <div class="mode-content active" id="modeDirectContent">
+            <div class="instructions">
+                <h3>📋 Geocodificação Direta</h3>
+                <ul>
+                    <li>Faça upload de uma planilha Excel com <strong>endereços</strong></li>
+                    <li>Configure a complementação automática (opcional)</li>
+                    <li>O sistema adicionará: <strong>Latitude</strong>, <strong>Longitude</strong> e <strong>Status_Geocoding</strong></li>
+                </ul>
+            </div>
+
+            <div class="enrichment-section">
+                <h3 class="collapsible" id="enrichmentToggle">✨ Complementação Automática de Endereços</h3>
+                <div class="collapsible-content" id="enrichmentContent">
+                    <p style="color: #224266; margin-bottom: 15px;">
+                        Configure informações padrão para enriquecer endereços incompletos.
+                    </p>
+
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enableEnrichment">
+                        <label for="enableEnrichment">Ativar complementação automática</label>
+                    </div>
+
+                    <div id="enrichmentFields" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="defaultCity">Cidade padrão:</label>
+                                <input type="text" id="defaultCity" placeholder="Ex: São Paulo">
+                            </div>
+                            <div class="form-group">
+                                <label for="defaultState">Estado padrão (sigla):</label>
+                                <input type="text" id="defaultState" placeholder="Ex: SP" maxlength="2" style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="defaultNeighborhood">Bairro (opcional):</label>
+                                <input type="text" id="defaultNeighborhood" placeholder="Ex: Centro">
+                            </div>
+                            <div class="form-group">
+                                <label for="defaultPostalCode">CEP (opcional):</label>
+                                <input type="text" id="defaultPostalCode" placeholder="Ex: 01310-100" maxlength="9">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>⚙️ Configurações</h3>
+                <div class="form-group">
+                    <label for="addressColumn">Nome da coluna com endereços:</label>
+                    <input type="text" id="addressColumn" placeholder="Ex: Endereco" value="Endereco">
+                </div>
+                <div class="form-group">
+                    <label for="delayTime">Intervalo entre requisições (ms):</label>
+                    <input type="number" id="delayTime" value="1100" min="1000" step="100">
+                </div>
+            </div>
+
+            <div class="upload-area" id="uploadAreaDirect">
+                <div class="upload-icon">📁</div>
+                <h3 style="color: #224266;">Clique ou arraste um arquivo Excel aqui</h3>
+                <p style="color: #224266; margin-top: 10px;">Formatos: .xlsx, .xls</p>
+                <input type="file" id="fileInputDirect" accept=".xlsx,.xls">
+            </div>
+
+            <div class="file-info" id="fileInfoDirect">
+                <h4>📄 Arquivo Carregado</h4>
+                <p id="fileNameDirect"></p>
+                <p id="fileRowsDirect"></p>
+                <p id="fileColumnsDirect"></p>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="downloadExampleDirect()">📥 Baixar Planilha de Exemplo</button>
+                <button class="btn" id="processBtnDirect" disabled>🚀 Processar Geocodificação</button>
+            </div>
+        </div>
+
+        <!-- Modo Reverso (Coordenadas para Endereço) -->
+        <div class="mode-content" id="modeReverseContent">
+            <div class="instructions">
+                <h3>📋 Geocodificação Reversa</h3>
+                <ul>
+                    <li>Faça upload de uma planilha Excel com <strong>Latitude</strong> e <strong>Longitude</strong></li>
+                    <li>Especifique os nomes das colunas de coordenadas</li>
+                    <li>O sistema adicionará: <strong>Endereco_Completo</strong>, <strong>Cidade</strong>, <strong>Estado</strong>, <strong>Pais</strong> e <strong>Status</strong></li>
+                </ul>
+            </div>
+
+            <div class="config-section">
+                <h3>⚙️ Configurações</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="latColumn">Nome da coluna de Latitude:</label>
+                        <input type="text" id="latColumn" placeholder="Ex: Latitude, Lat" value="Latitude">
+                    </div>
+                    <div class="form-group">
+                        <label for="lonColumn">Nome da coluna de Longitude:</label>
+                        <input type="text" id="lonColumn" placeholder="Ex: Longitude, Lon, Long" value="Longitude">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="delayTimeReverse">Intervalo entre requisições (ms):</label>
+                    <input type="number" id="delayTimeReverse" value="1100" min="1000" step="100">
+                </div>
+            </div>
+
+            <div class="upload-area" id="uploadAreaReverse">
+                <div class="upload-icon">📁</div>
+                <h3 style="color: #224266;">Clique ou arraste um arquivo Excel aqui</h3>
+                <p style="color: #224266; margin-top: 10px;">Formatos: .xlsx, .xls</p>
+                <input type="file" id="fileInputReverse" accept=".xlsx,.xls">
+            </div>
+
+            <div class="file-info" id="fileInfoReverse">
+                <h4>📄 Arquivo Carregado</h4>
+                <p id="fileNameReverse"></p>
+                <p id="fileRowsReverse"></p>
+                <p id="fileColumnsReverse"></p>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="downloadExampleReverse()">📥 Baixar Planilha de Exemplo</button>
+                <button class="btn" id="processBtnReverse" disabled>🚀 Processar Geocodificação Reversa</button>
+            </div>
+        </div>
+
+        <!-- Barra de Progresso e Status -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="footer">
+            <p>Desenvolvido por <strong>Laager Tecnologias Sustentáveis</strong></p>
+            <p>Sistema de Geocoding v3.0 | Dezembro 2025</p>
+        </div>
+    </div>
+
+    <script>
+        // Variáveis globais
+        let currentMode = 'direct';
+        let workbookDirect = null;
+        let workbookReverse = null;
+        let originalDataDirect = null;
+        let originalDataReverse = null;
+        let fileNameDirect = '';
+        let fileNameReverse = '';
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            setupDirectMode();
+            setupReverseMode();
+            setupCollapsible();
+        });
+
+        // Alternar entre modos
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            // Atualizar botões
+            document.getElementById('modeDirectBtn').classList.toggle('active', mode === 'direct');
+            document.getElementById('modeReverseBtn').classList.toggle('active', mode === 'reverse');
+            
+            // Atualizar conteúdo
+            document.getElementById('modeDirectContent').classList.toggle('active', mode === 'direct');
+            document.getElementById('modeReverseContent').classList.toggle('active', mode === 'reverse');
+            
+            // Limpar status
+            hideStatus();
+            document.getElementById('progressContainer').style.display = 'none';
+        }
+
+        // Setup modo direto
+        function setupDirectMode() {
+            const uploadArea = document.getElementById('uploadAreaDirect');
+            const fileInput = document.getElementById('fileInputDirect');
+            const processBtn = document.getElementById('processBtnDirect');
+            const enableEnrichment = document.getElementById('enableEnrichment');
+            const enrichmentFields = document.getElementById('enrichmentFields');
+
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    handleFileDirect(e.dataTransfer.files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileDirect(e.target.files[0]);
+                }
+            });
+
+            processBtn.addEventListener('click', processDirectGeocoding);
+
+            enableEnrichment.addEventListener('change', (e) => {
+                enrichmentFields.style.display = e.target.checked ? 'block' : 'none';
+            });
+        }
+
+        // Setup modo reverso
+        function setupReverseMode() {
+            const uploadArea = document.getElementById('uploadAreaReverse');
+            const fileInput = document.getElementById('fileInputReverse');
+            const processBtn = document.getElementById('processBtnReverse');
+
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    handleFileReverse(e.dataTransfer.files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileReverse(e.target.files[0]);
+                }
+            });
+
+            processBtn.addEventListener('click', processReverseGeocoding);
+        }
+
+        // Setup collapsible
+        function setupCollapsible() {
+            const toggle = document.getElementById('enrichmentToggle');
+            const content = document.getElementById('enrichmentContent');
+            
+            toggle.addEventListener('click', () => {
+                toggle.classList.toggle('collapsed');
+                content.classList.toggle('collapsed');
+            });
+        }
+
+        // Processar arquivo modo direto
+        function handleFileDirect(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/)) {
+                showStatus('error', '❌ Por favor, selecione um arquivo Excel válido');
+                return;
+            }
+
+            fileNameDirect = file.name;
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    workbookDirect = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbookDirect.Sheets[workbookDirect.SheetNames[0]];
+                    originalDataDirect = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+                    if (originalDataDirect.length === 0) {
+                        showStatus('error', '❌ A planilha está vazia');
+                        return;
+                    }
+
+                    const columns = Object.keys(originalDataDirect[0]);
+                    document.getElementById('fileNameDirect').textContent = `Nome: ${file.name}`;
+                    document.getElementById('fileRowsDirect').textContent = `Linhas: ${originalDataDirect.length}`;
+                    document.getElementById('fileColumnsDirect').textContent = `Colunas: ${columns.join(', ')}`;
+                    document.getElementById('fileInfoDirect').style.display = 'block';
+                    document.getElementById('processBtnDirect').disabled = false;
+
+                    showStatus('success', `✅ Arquivo carregado! ${originalDataDirect.length} linhas encontradas.`);
+                } catch (error) {
+                    showStatus('error', `❌ Erro ao ler o arquivo: ${error.message}`);
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Processar arquivo modo reverso
+        function handleFileReverse(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/)) {
+                showStatus('error', '❌ Por favor, selecione um arquivo Excel válido');
+                return;
+            }
+
+            fileNameReverse = file.name;
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    workbookReverse = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbookReverse.Sheets[workbookReverse.SheetNames[0]];
+                    originalDataReverse = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+                    if (originalDataReverse.length === 0) {
+                        showStatus('error', '❌ A planilha está vazia');
+                        return;
+                    }
+
+                    const columns = Object.keys(originalDataReverse[0]);
+                    document.getElementById('fileNameReverse').textContent = `Nome: ${file.name}`;
+                    document.getElementById('fileRowsReverse').textContent = `Linhas: ${originalDataReverse.length}`;
+                    document.getElementById('fileColumnsReverse').textContent = `Colunas: ${columns.join(', ')}`;
+                    document.getElementById('fileInfoReverse').style.display = 'block';
+                    document.getElementById('processBtnReverse').disabled = false;
+
+                    showStatus('success', `✅ Arquivo carregado! ${originalDataReverse.length} linhas encontradas.`);
+                } catch (error) {
+                    showStatus('error', `❌ Erro ao ler o arquivo: ${error.message}`);
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Processar geocodificação direta
+        async function processDirectGeocoding() {
+            const addressColumn = document.getElementById('addressColumn').value.trim();
+            const delayTime = parseInt(document.getElementById('delayTime').value);
+
+            if (!addressColumn) {
+                showStatus('error', '❌ Especifique o nome da coluna de endereços');
+                return;
+            }
+
+            const firstRow = originalDataDirect[0];
+            const availableColumns = Object.keys(firstRow);
+            
+            // Busca case-insensitive para a coluna
+            const addressColumnActual = availableColumns.find(col => col.toLowerCase() === addressColumn.toLowerCase());
+            
+            if (!addressColumnActual) {
+                showStatus('error', `❌ Coluna "${addressColumn}" não encontrada. Disponíveis: ${availableColumns.join(', ')}`);
+                return;
+            }
+
+            document.getElementById('processBtnDirect').disabled = true;
+            document.getElementById('progressContainer').style.display = 'block';
+            showStatus('info', '🔄 Processando geocodificação...');
+
+            const results = [];
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (let i = 0; i < originalDataDirect.length; i++) {
+                const row = { ...originalDataDirect[i] };
+                const address = row[addressColumnActual];
+
+                if (!address || address.trim() === '') {
+                    row['Latitude'] = '';
+                    row['Longitude'] = '';
+                    row['Status_Geocoding'] = 'Endereço vazio';
+                    errorCount++;
+                } else {
+                    try {
+                        const coords = await geocodeAddress(address);
+                        if (coords) {
+                            row['Latitude'] = coords.lat;
+                            row['Longitude'] = coords.lon;
+                            row['Status_Geocoding'] = 'Sucesso';
+                            row['Display_Name'] = coords.display_name;
+                            successCount++;
+                        } else {
+                            row['Latitude'] = '';
+                            row['Longitude'] = '';
+                            row['Status_Geocoding'] = 'Não encontrado';
+                            errorCount++;
+                        }
+                    } catch (error) {
+                        row['Latitude'] = '';
+                        row['Longitude'] = '';
+                        row['Status_Geocoding'] = `Erro: ${error.message}`;
+                        errorCount++;
+                    }
+                }
+
+                results.push(row);
+                updateProgress(i + 1, originalDataDirect.length);
+
+                if (i < originalDataDirect.length - 1) {
+                    await sleep(delayTime);
+                }
+            }
+
+            downloadExcel(results, fileNameDirect.replace(/\.xlsx?$/i, '_geocoded.xlsx'));
+
+            let statusMsg = `✅ Processamento concluído!\n\n`;
+            statusMsg += `✔️ ${successCount} endereços geocodificados\n`;
+            statusMsg += `❌ ${errorCount} com erro\n`;
+            showStatus('success', statusMsg);
+
+            document.getElementById('processBtnDirect').disabled = false;
+        }
+
+        // Processar geocodificação reversa
+        async function processReverseGeocoding() {
+            const latColumn = document.getElementById('latColumn').value.trim();
+            const lonColumn = document.getElementById('lonColumn').value.trim();
+            const delayTime = parseInt(document.getElementById('delayTimeReverse').value);
+
+            if (!latColumn || !lonColumn) {
+                showStatus('error', '❌ Especifique os nomes das colunas de coordenadas');
+                return;
+            }
+
+            const firstRow = originalDataReverse[0];
+            const availableColumns = Object.keys(firstRow);
+            
+            // Busca case-insensitive para as colunas
+            const latColumnActual = availableColumns.find(col => col.toLowerCase() === latColumn.toLowerCase());
+            const lonColumnActual = availableColumns.find(col => col.toLowerCase() === lonColumn.toLowerCase());
+            
+            if (!latColumnActual || !lonColumnActual) {
+                showStatus('error', `❌ Colunas não encontradas. Disponíveis: ${availableColumns.join(', ')}`);
+                return;
+            }
+
+            document.getElementById('processBtnReverse').disabled = true;
+            document.getElementById('progressContainer').style.display = 'block';
+            showStatus('info', '🔄 Processando geocodificação reversa...');
+
+            const results = [];
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (let i = 0; i < originalDataReverse.length; i++) {
+                const row = { ...originalDataReverse[i] };
+                const lat = row[latColumnActual];
+                const lon = row[lonColumnActual];
+
+                if (!lat || !lon || lat === '' || lon === '') {
+                    row['Endereco_Completo'] = '';
+                    row['Cidade'] = '';
+                    row['Estado'] = '';
+                    row['Pais'] = '';
+                    row['Status'] = 'Coordenadas vazias';
+                    errorCount++;
+                } else {
+                    try {
+                        const address = await reverseGeocode(lat, lon);
+                        if (address) {
+                            row['Endereco_Completo'] = address.display_name;
+                            row['Cidade'] = address.city || address.town || address.village || '';
+                            row['Estado'] = address.state || '';
+                            row['Pais'] = address.country || '';
+                            row['Status'] = 'Sucesso';
+                            successCount++;
+                        } else {
+                            row['Endereco_Completo'] = '';
+                            row['Cidade'] = '';
+                            row['Estado'] = '';
+                            row['Pais'] = '';
+                            row['Status'] = 'Não encontrado';
+                            errorCount++;
+                        }
+                    } catch (error) {
+                        row['Endereco_Completo'] = '';
+                        row['Cidade'] = '';
+                        row['Estado'] = '';
+                        row['Pais'] = '';
+                        row['Status'] = `Erro: ${error.message}`;
+                        errorCount++;
+                    }
+                }
+
+                results.push(row);
+                updateProgress(i + 1, originalDataReverse.length);
+
+                if (i < originalDataReverse.length - 1) {
+                    await sleep(delayTime);
+                }
+            }
+
+            downloadExcel(results, fileNameReverse.replace(/\.xlsx?$/i, '_enderecos.xlsx'));
+
+            let statusMsg = `✅ Processamento concluído!\n\n`;
+            statusMsg += `✔️ ${successCount} coordenadas convertidas\n`;
+            statusMsg += `❌ ${errorCount} com erro\n`;
+            showStatus('success', statusMsg);
+
+            document.getElementById('processBtnReverse').disabled = false;
+        }
+
+        // Geocodificação direta (endereço -> coordenadas)
+        async function geocodeAddress(address) {
+            const query = encodeURIComponent(`${address}, Brasil`);
+            const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&countrycodes=br&limit=1&addressdetails=1`;
+
+            try {
+                const response = await fetch(url, {
+                    headers: { 'User-Agent': 'GeocodingLaagerApp/3.0' }
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    return {
+                        lat: data[0].lat,
+                        lon: data[0].lon,
+                        display_name: data[0].display_name
+                    };
+                }
+                return null;
+            } catch (error) {
+                console.error('Geocoding error:', error);
+                throw error;
+            }
+        }
+
+        // Geocodificação reversa (coordenadas -> endereço)
+        async function reverseGeocode(lat, lon) {
+            const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;
+
+            try {
+                const response = await fetch(url, {
+                    headers: { 'User-Agent': 'GeocodingLaagerApp/3.0' }
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const data = await response.json();
+                if (data && data.address) {
+                    return {
+                        display_name: data.display_name,
+                        city: data.address.city,
+                        town: data.address.town,
+                        village: data.address.village,
+                        state: data.address.state,
+                        country: data.address.country
+                    };
+                }
+                return null;
+            } catch (error) {
+                console.error('Reverse geocoding error:', error);
+                throw error;
+            }
+        }
+
+        // Atualizar barra de progresso
+        function updateProgress(current, total) {
+            const progress = Math.round((current / total) * 100);
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = progress + '%';
+            progressFill.textContent = `${progress}% (${current}/${total})`;
+        }
+
+        // Download Excel
+        function downloadExcel(data, filename) {
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Resultado');
+            XLSX.writeFile(workbook, filename);
+        }
+
+        // Mostrar status
+        function showStatus(type, message) {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.innerHTML = message.replace(/\n/g, '<br>');
+            status.style.display = 'block';
+        }
+
+        // Ocultar status
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+
+        // Sleep
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Download planilha de exemplo - Modo Direto
+        function downloadExampleDirect() {
+            const data = [
+                {
+                    'ID': 1,
+                    'Nome': 'Loja Centro',
+                    'Endereco': 'Rua Augusta, 1000, São Paulo, SP'
+                },
+                {
+                    'ID': 2,
+                    'Nome': 'Loja Sul',
+                    'Endereco': 'Avenida Paulista, 500, São Paulo, SP'
+                },
+                {
+                    'ID': 3,
+                    'Nome': 'Loja Norte',
+                    'Endereco': 'Rua da Consolação, 2000, São Paulo, SP'
+                },
+                {
+                    'ID': 4,
+                    'Nome': 'Filial RJ',
+                    'Endereco': 'Avenida Rio Branco, 100, Rio de Janeiro, RJ'
+                },
+                {
+                    'ID': 5,
+                    'Nome': 'Filial BSB',
+                    'Endereco': 'Esplanada dos Ministérios, Brasília, DF'
+                }
+            ];
+
+            downloadExcel(data, 'exemplo_enderecos.xlsx');
+            showStatus('success', '✅ Planilha de exemplo baixada! Preencha com seus endereços e faça upload.');
+        }
+
+        // Download planilha de exemplo - Modo Reverso
+        function downloadExampleReverse() {
+            const data = [
+                {
+                    'ID': 1,
+                    'Nome_Local': 'Cristo Redentor',
+                    'Latitude': -22.951916,
+                    'Longitude': -43.210487
+                },
+                {
+                    'ID': 2,
+                    'Nome_Local': 'Avenida Paulista',
+                    'Latitude': -23.561414,
+                    'Longitude': -46.656139
+                },
+                {
+                    'ID': 3,
+                    'Nome_Local': 'Congresso Nacional',
+                    'Latitude': -15.799523,
+                    'Longitude': -47.864178
+                },
+                {
+                    'ID': 4,
+                    'Nome_Local': 'Pelourinho Salvador',
+                    'Latitude': -12.973611,
+                    'Longitude': -38.510833
+                },
+                {
+                    'ID': 5,
+                    'Nome_Local': 'Pão de Açúcar',
+                    'Latitude': -22.948611,
+                    'Longitude': -43.157222
+                }
+            ];
+
+            downloadExcel(data, 'exemplo_coordenadas.xlsx');
+            showStatus('success', '✅ Planilha de exemplo baixada! Preencha com suas coordenadas e faça upload.');
+        }
+    </script>
+</body>
+</html>
