@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Geocoding Laager - Sistema Completo</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -447,6 +448,57 @@
             border-radius: 10px;
         }
 
+        .export-options {
+            background: #E6FBFF;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #00B1FF;
+        }
+
+        .export-options h4 {
+            color: #224266;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .checkbox-label:hover {
+            background: #F0F9FF;
+            border-color: #00B1FF;
+            transform: translateX(5px);
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #99CC29;
+        }
+
+        .checkbox-label span {
+            color: #224266;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
         .container::-webkit-scrollbar-thumb:hover {
             background: #B5E52E;
         }
@@ -527,8 +579,8 @@
                     <input type="text" id="addressColumn" placeholder="Ex: Endereco" value="Endereco">
                 </div>
                 <div class="form-group">
-                    <label for="delayTime">Intervalo entre requisições (ms):</label>
-                    <input type="number" id="delayTime" value="1100" min="1000" step="100">
+                        <label>Intervalo entre requisições (ms):</label>
+                    <input type="number" id="delayTime" value="500" min="500" step="100">
                 </div>
             </div>
 
@@ -546,9 +598,12 @@
                 <p id="fileColumnsDirect"></p>
             </div>
 
+
+
             <div class="button-group">
-                <button class="btn btn-secondary" onclick="downloadExampleDirect()">📥 Baixar Planilha de Exemplo</button>
-                <button class="btn" id="processBtnDirect" disabled>🚀 Processar Geocodificação</button>
+                <button class="btn btn-secondary" onclick="downloadExampleDirect()">📅 Baixar Planilha de Exemplo</button>
+                <button class="btn" id="processBtnExcel" disabled>🚀 Processar e Exportar Excel (.xlsx)</button>
+                <button class="btn" id="processBtnCSV" disabled>🚀 Processar e Exportar CSV (.csv)</button>
             </div>
         </div>
 
@@ -594,6 +649,8 @@
                 <p id="fileRowsReverse"></p>
                 <p id="fileColumnsReverse"></p>
             </div>
+
+
 
             <div class="button-group">
                 <button class="btn btn-secondary" onclick="downloadExampleReverse()">📥 Baixar Planilha de Exemplo</button>
@@ -654,7 +711,8 @@
         function setupDirectMode() {
             const uploadArea = document.getElementById('uploadAreaDirect');
             const fileInput = document.getElementById('fileInputDirect');
-            const processBtn = document.getElementById('processBtnDirect');
+            const processBtnExcel = document.getElementById('processBtnExcel');
+            const processBtnCSV = document.getElementById('processBtnCSV');
             const enableEnrichment = document.getElementById('enableEnrichment');
             const enrichmentFields = document.getElementById('enrichmentFields');
 
@@ -680,7 +738,8 @@
                 }
             });
 
-            processBtn.addEventListener('click', processDirectGeocoding);
+            processBtnExcel.addEventListener('click', () => processDirectGeocoding('excel'));
+            processBtnCSV.addEventListener('click', () => processDirectGeocoding('csv'));
 
             enableEnrichment.addEventListener('change', (e) => {
                 enrichmentFields.style.display = e.target.checked ? 'block' : 'none';
@@ -756,7 +815,8 @@
                     document.getElementById('fileRowsDirect').textContent = `Linhas: ${originalDataDirect.length}`;
                     document.getElementById('fileColumnsDirect').textContent = `Colunas: ${columns.join(', ')}`;
                     document.getElementById('fileInfoDirect').style.display = 'block';
-                    document.getElementById('processBtnDirect').disabled = false;
+                    document.getElementById('processBtnExcel').disabled = false;
+                    document.getElementById('processBtnCSV').disabled = false;
 
                     showStatus('success', `✅ Arquivo carregado! ${originalDataDirect.length} linhas encontradas.`);
                 } catch (error) {
@@ -806,7 +866,7 @@
         }
 
         // Processar geocodificação direta
-        async function processDirectGeocoding() {
+        async function processDirectGeocoding(exportFormat) {
             const addressColumn = document.getElementById('addressColumn').value.trim();
             const delayTime = parseInt(document.getElementById('delayTime').value);
 
@@ -826,7 +886,8 @@
                 return;
             }
 
-            document.getElementById('processBtnDirect').disabled = true;
+            document.getElementById('processBtnExcel').disabled = true;
+            document.getElementById('processBtnCSV').disabled = true;
             document.getElementById('progressContainer').style.display = 'block';
             showStatus('info', '🔄 Processando geocodificação...');
 
@@ -874,14 +935,27 @@
                 }
             }
 
-            downloadExcel(results, fileNameDirect.replace(/\.xlsx?$/i, '_geocoded.xlsx'));
+            const baseFileName = fileNameDirect.replace(/\.xlsx?$/i, '_geocoded');
 
-            let statusMsg = `✅ Processamento concluído!\n\n`;
-            statusMsg += `✔️ ${successCount} endereços geocodificados\n`;
-            statusMsg += `❌ ${errorCount} com erro\n`;
-            showStatus('success', statusMsg);
+            // Exportar conforme formato solicitado
+            if (exportFormat === 'excel') {
+                downloadExcel(results, baseFileName + '.xlsx');
+                let statusMsg = `✅ Processamento concluído!\n\n`;
+                statusMsg += `✔️ ${successCount} endereços geocodificados\n`;
+                statusMsg += `❌ ${errorCount} com erro\n`;
+                statusMsg += `📊 Planilha Excel baixada\n`;
+                showStatus('success', statusMsg);
+            } else if (exportFormat === 'csv') {
+                downloadCSV(results, baseFileName + '.csv', 'direct');
+                let statusMsg = `✅ Processamento concluído!\n\n`;
+                statusMsg += `✔️ ${successCount} endereços geocodificados\n`;
+                statusMsg += `❌ ${errorCount} com erro\n`;
+                statusMsg += `📍 Arquivo CSV baixado\n`;
+                showStatus('success', statusMsg);
+            }
 
-            document.getElementById('processBtnDirect').disabled = false;
+            document.getElementById('processBtnExcel').disabled = false;
+            document.getElementById('processBtnCSV').disabled = false;
         }
 
         // Processar geocodificação reversa
@@ -963,11 +1037,33 @@
                 }
             }
 
-            downloadExcel(results, fileNameReverse.replace(/\.xlsx?$/i, '_enderecos.xlsx'));
+            // Verificar quais formatos exportar
+            const exportExcel = document.getElementById('exportExcelReverse').checked;
+            const exportKmz = document.getElementById('exportKmzReverse').checked;
+
+            if (!exportExcel && !exportKmz) {
+                showStatus('error', '❌ Selecione pelo menos um formato de exportação');
+                document.getElementById('processBtnReverse').disabled = false;
+                return;
+            }
+
+            const baseFileName = fileNameReverse.replace(/\.xlsx?$/i, '_enderecos');
+
+            // Exportar Excel
+            if (exportExcel) {
+                downloadExcel(results, baseFileName + '.xlsx');
+            }
+
+            // Exportar CSV
+            if (exportKmz) {
+                downloadCSV(results, baseFileName + '.csv', 'reverse');
+            }
 
             let statusMsg = `✅ Processamento concluído!\n\n`;
             statusMsg += `✔️ ${successCount} coordenadas convertidas\n`;
             statusMsg += `❌ ${errorCount} com erro\n`;
+            if (exportExcel) statusMsg += `📊 Planilha Excel baixada\n`;
+            if (exportKmz) statusMsg += `📍 Arquivo CSV baixado\n`;
             showStatus('success', statusMsg);
 
             document.getElementById('processBtnReverse').disabled = false;
@@ -1043,6 +1139,79 @@
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Resultado');
             XLSX.writeFile(workbook, filename);
+        }
+
+        // Download CSV (Google Earth)
+        function downloadCSV(data, filename, mode) {
+            try {
+                let csvContent = '';
+                
+                if (mode === 'direct') {
+                    // Modo direto: endereço -> coordenadas
+                    // Exportar apenas Nome, Latitude e Longitude
+                    csvContent = 'Nome,Latitude,Longitude\n';
+                    
+                    data.forEach((row, index) => {
+                        const lat = row.Latitude || '';
+                        const lon = row.Longitude || '';
+                        const name = escapeCSV(row.Nome || row.ID || `Ponto ${index + 1}`);
+                        
+                        // Apenas adicionar se tiver coordenadas válidas
+                        if (lat && lon && lat !== '' && lon !== '') {
+                            csvContent += `${name},${lat},${lon}\n`;
+                        }
+                    });
+                    
+                } else {
+                    // Modo reverso: coordenadas -> endereço
+                    // Cabeçalho CSV para Google Earth
+                    csvContent = 'Name,Description,Latitude,Longitude\n';
+                    
+                    data.forEach((row, index) => {
+                        const lat = row.Latitude || row.LATITUDE || '';
+                        const lon = row.Longitude || row.LONGITUDE || '';
+                        const name = escapeCSV(row.Nome_Local || row.ID || `Ponto ${index + 1}`);
+                        const address = escapeCSV(row.Endereco_Completo || 'N/A');
+                        const cidade = escapeCSV(row.Cidade || 'N/A');
+                        const estado = escapeCSV(row.Estado || 'N/A');
+                        const pais = escapeCSV(row.Pais || 'N/A');
+                        const status = escapeCSV(row.Status || 'N/A');
+                        
+                        // Descrição com informações completas
+                        const description = escapeCSV(`${address} | Cidade: ${cidade} | Estado: ${estado} | País: ${pais} | Status: ${status}`);
+                        
+                        // Apenas adicionar se tiver coordenadas válidas
+                        if (lat && lon && lat !== '' && lon !== '') {
+                            csvContent += `${name},${description},${lat},${lon}\n`;
+                        }
+                    });
+                }
+                
+                // Criar blob e fazer download
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                
+            } catch (error) {
+                console.error('Erro ao gerar CSV:', error);
+                showStatus('error', `❌ Erro ao gerar arquivo CSV: ${error.message}`);
+            }
+        }
+
+        // Função auxiliar para escapar CSV
+        function escapeCSV(value) {
+            if (!value) return '';
+            const str = value.toString();
+            // Se contém vírgula, aspas ou quebra de linha, colocar entre aspas
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return '"' + str.replace(/"/g, '""') + '"';
+            }
+            return str;
         }
 
         // Mostrar status
